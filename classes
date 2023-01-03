@@ -1,0 +1,30 @@
+import png,array
+import numpy as np
+
+class maze_reader():
+
+    def __init__(self):
+        r = png.Reader(filename="maze (8).png")
+        self.maze_width, self.maze_height, pixel, extra = r.read()
+        self.maze = np.ndarray([self.maze_width, self.maze_height])
+        self.pixel_array = (np.array(list(pixel)))
+        self.convert_to_array()
+
+    def convert_to_array(self):
+        for idx, item in enumerate(self.pixel_array):
+                for idx2, x in enumerate(range(0, self.maze_width * 4, 4)):
+                    if item[x] == 0:
+                        self.maze[idx][idx2] = 1
+                    else:
+                        self.maze[idx][idx2] = 0
+
+    def find_start_and_end(self):
+        for x in range(self.maze_height):
+            if self.maze[x][0] == 0:
+                start = (x, 0)
+
+            if self.maze[x][self.maze_width - 1] == 0:
+                end = (x, self.maze_width - 1)
+
+        return start, end
+
