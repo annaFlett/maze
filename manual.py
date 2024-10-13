@@ -2,16 +2,35 @@ import matplotlib.patches
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-import png
 
-from classes import maze_reader
 
-#basic setup, convert the png to numpy array of 1s and 0s. Also finds start + end points of the maze
-reader = maze_reader()
-maze,maze_width,maze_height = reader.maze,reader.maze_width,reader.maze_height
+maze_width = 10
+maze_height = 10
+maze = np.array([[1, 1, 1, 1, 1, 0, 1, 1, 1, 1],
+                 [1, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                 [1, 0, 1, 0, 1, 1, 1, 0, 0, 1],
+                 [1, 0, 1, 1, 0, 0, 0, 1, 0, 1],
+                 [1, 0, 0, 0, 0, 1, 0, 1, 0, 1],
+                 [1, 1, 0, 1, 1, 0, 0, 1, 0, 1],
+                 [1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+                 [1, 0, 1, 0, 1, 0, 1, 1, 1, 1],
+                 [1, 0, 1, 0, 0, 0, 0, 0, 1, 1],
+                 [1, 1, 1, 1, 1, 0, 1, 1, 1, 1]])
+
 copy_maze = maze.copy()
-start,end = reader.find_start_and_end()
+print(maze)
 
+
+def find_start_and_end():
+    for indx, tile in enumerate(maze[0]):
+        if tile == 0:
+            start = (0, indx)
+
+    for indx, tile in enumerate(maze[-1]):
+        if tile == 0:
+            end = (maze_height - 1, indx)
+
+    return start, end
 
 
 def make_node_array(start, end):
@@ -34,6 +53,7 @@ def make_node_array(start, end):
 
 
 def algorithm_setup():
+    start, end = find_start_and_end()
     make_node_array(start, end)
     # checks for nodes hit lots of time (nodes), and sets up a boolean array
     node_maze = np.vectorize(lambda s: s <= -3)(copy_maze)
@@ -42,17 +62,14 @@ def algorithm_setup():
 
     return (copy_maze, node_maze, used_maze, start, end)
 
-print ("here")
+
 mazes = algorithm_setup()
 fig, ax = plt.subplots()
 for i in range(maze_height):
     for j in range(maze_width):
         if maze[i][j] == 1:
-            # j and i swapped + -1, so that the grid is in the right orientation
-            rect = matplotlib.patches.Rectangle((j, -i), 1, 1, color="k")
+            rect = matplotlib.patches.Rectangle((i, j), 1, 1, color="k")
             ax.add_patch(rect)
-
-print ("here")
 
 
 def move(mazes):
@@ -62,44 +79,58 @@ def move(mazes):
     fails = 0
     print(current, end)
     while current != end:
-        checks = ((current[0]+1,current[1]),(current[0],current[1]+1),(current[0],current[1]-1),(current[0]-1,current[1]))
         colour = (random.random(), random.random(), random.random())
-        ax.scatter(current[1] +0.5,-(current[0] + 0.5), color=colour)
-        #print(used_maze, current, nodes)
+        ax.scatter(current[0] + 0.5,current[1] +0.5, color=colour)
+        print(used_maze, current, nodes)
         if node_maze[current[0]][current[1]] == True and (current[0], current[1]) not in nodes:
-            #print("adding node")
             nodes.append((current[0], current[1]))
         moved = False
-        for x,y in checks:
-            try:
-                if used_maze[x][y] == True and moved == False:
-                    used_maze[current[0]][current[1]] = False
-                    current = (x, y)
-                    #print("moved_down")
-                    moved = True
-                    break
-                else:
-                    print("failed")
-            except IndexError:
-                pass
-
+        try:
+            if used_maze[current[0] + 1][current[1]] == True and moved == False:
+                used_maze[current[0]][current[1]] = False
+                current = (current[0] + 1, current[1])
+                print("moved_down")
+                moved = True
+            else:
+                print("failed")
+        except IndexError:
+            pass
+        try:
+            if used_maze[current[0]][current[1] + 1] == True and moved == False:
+                used_maze[current[0]][current[1]] = False
+                current = (current[0], current[1] + 1)
+                moved = True
+                print("moved_right")
+        except IndexError:
+            pass
+        try:
+            if used_maze[current[0]][current[1] - 1] == True and moved == False:
+                used_maze[current[0]][current[1]] = False
+                current = (current[0], current[1] - 1)
+                moved = True
+                print("moved_left")
+        except IndexError:
+            pass
+        try:
+            if used_maze[current[0] - 1][current[1]] == True and moved == False:
+                used_maze[current[0]][current[1]] = False
+                current = (current[0] - 1, current[1])
+                moved = True
+                print("moved_up")
+        except IndexError:
+            pass
         if moved == False:
             used_maze[current[0]][current[1]] = False
             fails += 1
             if fails > 3:
                 current = nodes[-fails + 2]
                 travelled_to.append((current[0], current[1]))
-                #print ("stuck")
             else:
                 current = nodes[-1]
                 travelled_to.append((current[0], current[1]))
         else:
             fails = 0
             travelled_to.append((current[0], current[1]))
-            #print("end")
-        #print("end2")
-   # print("done", current)
-    #rint(travelled_to)
 
     for x in range(len(travelled_to)):
         for x in range(len(travelled_to)):
@@ -111,34 +142,14 @@ def move(mazes):
                 del travelled_to[x:end_idx]
                 break
 
-    #print(travelled_to)
+    print(travelled_to)
 
-    x = [-1*(item[0] - 0.5) for item in travelled_to]
+    x = [item[0] + 0.5 for item in travelled_to]
     y = [item[1] + 0.5 for item in travelled_to]
-    plt.plot(y,x, color="b", lw=4)
-    plt.scatter(y,x, color="k")
+    plt.plot(x, y, color="b", lw=4)
+    plt.scatter(x, y, color="k")
 
     plt.show()
-    return travelled_to
 
 
-travelled_to = move(mazes)
-#plt.show()
-p =[[] for x in range(len(reader.pixel_array))]
-for idx,_ in enumerate(reader.pixel_array):
-    for x in range(len(_)):
-        if x % 4 != 3:
-            p[idx].append(_[x])
-print (len(p))
-print (p)
-print (travelled_to)
-for pair in travelled_to:
-    p[pair[0]][pair[1]*3],p[pair[0]][pair[1]*3 + 1],p[pair[0]][pair[1]*3 + 2] = 52, 204, 235
-w = png.Writer(maze_width,maze_height,greyscale=False)
-f = open("maze.png","wb")
-w.write(f,p)
-
-from PIL import Image
-
-image = Image.open('maze.png')
-image.show()
+move(mazes)
